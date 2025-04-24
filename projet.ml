@@ -55,8 +55,7 @@ let get_current z = z.current
  *)
 let get_pos z = z.pos
 
-
-let fold_zipper f g acc0 z =
+let fold f g acc0 z =
   let acc1 = List.fold_left f acc0 (List.rev z.before) in
   let acc2 = g acc1 z.current in
   List.fold_left g acc2 z.after
@@ -68,10 +67,9 @@ let fold_zipper f g acc0 z =
  * @return Nouveau zipper avec élément courant transformé
  *)
 let update_with f z = { z with current = f z.current }
+(**refaire a la main sans le with*)
 
-(**Partie 2**)
-
-  (** 
+(** 
  * Déplace le curseur vers la gauche dans une ligne
  * @param l La ligne à modifier
  * @return Nouvelle ligne avec curseur déplacé
@@ -137,6 +135,7 @@ let buffer_move_down buf =
         after = tl;
         pos = get_pos buf + 1 }
 
+(**Partie 2**)
 
 (* Déplacements horizontaux *)
 
@@ -162,6 +161,7 @@ let move_down = buffer_move_down
  * @param buf Buffer actuel
  * @return Nouveau buffer avec caractère inséré
  *)
+ 
  let insert_char ch buf =
     let update_line line = {
       before = ch :: line.before;
@@ -202,7 +202,7 @@ let do_backspace buf =
       let update_line line = { 
         line with 
         before = tl;
-        pos = line.pos - 1 
+        pos = get_pos line - 1 
       } in
       update_with update_line buf
 *)
@@ -217,18 +217,18 @@ let do_backspace buf =
 
 (*
 let create_newline buf =
-  let cl = buf.current in
+  let current_line = buf.current in
   let new_line = {
     before = [];
     current = Cursor;
-    after = cl.after;
+    after = current_line.after;
     pos = 0
   } in
   {
     before = buf.current :: buf.before;
     current = new_line;
     after = buf.after;
-    pos = buf.pos + 1
+    pos = get_pos buf + 1
   }
 *)
 
@@ -243,10 +243,10 @@ let create_newline buf =
 
 let move_left buf =
   let current_line = buf.current in
-  if current_line.before = [] then (* Début de la ligne courante *)
+  if current_line.before = [] then
     match buf.before with
-    | [] -> buf (* Déjà sur la première ligne, rien à faire *)
-    | prev_line :: rest_before -> (* Il y a une ligne au-dessus *)
+    | [] -> buf
+    | prev_line :: rest_before ->
         let new_current = {
           before = prev_line.before;
           current = Cursor;
@@ -257,11 +257,10 @@ let move_left buf =
           before = rest_before;
           current = new_current;
           after = current_line :: buf.after;
-          (* Utiliser get_pos *)
-          pos = buf.pos - 1;
+          pos = get_pos buf - 1;
         }
   else
-    { buf with current = line_move_left buf.current } (* Cas normal: on se déplace simplement à gauche *)
+    { buf with current = line_move_left buf.current }
 
 (**
  * Déplace le curseur vers la droite dans le buffer
@@ -270,28 +269,28 @@ let move_left buf =
  * @raises Failure si on est déjà en fin de ligne
  *)
 
+ (** Faire une fonction de concaténation *)
+
 let move_right buf =
   let current_line = buf.current in
-  if current_line.after = [] then (* Fin de la ligne courante *)
+  if current_line.after = [] then
     match buf.after with
-    | [] -> buf (* Déjà sur la dernière ligne, rien à faire *)
-    | next_line :: rest_after -> (* Il y a une ligne en dessous *)
-    (*Peut être utilisé empty line / buf*)
+    | [] -> buf
+    | next_line :: rest_after ->
         let new_current = {
           before = [];
           current = Cursor;
-          after = List.rev next_line.before @ next_line.after; (*Attention a l'ordre de concaténation*)
+          after = List.rev next_line.before @ next_line.after;
           pos = 0;
         } in
         {
           before = current_line :: buf.before;
           current = new_current;
           after = rest_after;
-          (* Utiliser get_pos *)
-          pos = buf.pos + 1;
+          pos = get_pos buf + 1;
         }
   else
-    { buf with current = line_move_right buf.current } (* Cas normal: on se déplace simplement à droite *)
+    { buf with current = line_move_right buf.current }
 
 (**
  * Crée une nouvelle ligne dans le buffer
@@ -303,7 +302,6 @@ let create_newline buf =
   let current_line = buf.current in
   let new_line = { empty_line with after = current_line.after } in (* texte après le curseur passe à la nouvelle ligne *)
   let updated_current = {
-    (*Peut être utilisé empty line / buf*)
     before = current_line.before;
     current = Cursor;
     after = [];  (* on vide la partie après car elle a été déplacée *)
@@ -313,8 +311,7 @@ let create_newline buf =
     before = updated_current :: buf.before;
     current = new_line;
     after = buf.after;
-    (* Utiliser get_pos *)
-    pos = buf.pos + 1;
+    pos = get_pos buf + 1;
   }
 
   (**
@@ -341,8 +338,7 @@ let do_backspace buf =
           { buf with 
             before = rest_before;
             current = merged_line;
-            (* Utiliser get_pos *)
-            pos = buf.pos - 1
+            pos = get_pos buf - 1
           }
       end
   | _::tl ->
@@ -350,7 +346,7 @@ let do_backspace buf =
       let update_line line = { 
         line with 
         before = tl;
-        pos = line.pos - 1 
+        pos = get_pos line - 1 
       } in
       update_with update_line buf
 
